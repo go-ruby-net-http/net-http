@@ -28,10 +28,12 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
+      # The codec targets MRI 4.0.x; the differential oracle is version-gated to
+      # ruby 4.x and self-skips otherwise, so install 4.0 here to exercise it.
       - if: runner.os != 'Windows'
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.4"
+          ruby-version: "4.0"
       - run: go version
       - run: go vet ./...
       - run: go build ./...

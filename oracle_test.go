@@ -11,14 +11,25 @@ import (
 	"testing"
 )
 
-// rubyBin locates a usable `ruby` once. The oracle tests skip themselves when it
-// is absent (the qemu cross-arch lanes and the Windows lane), so the
-// deterministic suite alone drives the 100% gate there.
+// rubyBin locates a usable `ruby` once and gates the oracle to the targeted MRI
+// major version (4.x). The differential tests reproduce MRI 4.0.5 byte-for-byte;
+// older lines (e.g. 3.4) diverge in Net::HTTP details such as the empty-body and
+// set_form_data Content-Type defaulting, so the oracle self-skips off-version.
+// It also skips when `ruby` is absent (the qemu cross-arch and Windows lanes),
+// so the deterministic suite alone drives the 100% gate there.
 func rubyBin(t *testing.T) string {
 	t.Helper()
 	path, err := exec.LookPath("ruby")
 	if err != nil {
 		t.Skip("ruby not on PATH; skipping MRI oracle")
+	}
+	out, err := exec.Command(path, "-e", "print RUBY_VERSION").Output()
+	if err != nil {
+		t.Skipf("cannot determine ruby version: %v", err)
+	}
+	major, _, _ := strings.Cut(string(out), ".")
+	if major != "4" {
+		t.Skipf("MRI oracle targets ruby 4.x; found %s", out)
 	}
 	return path
 }
